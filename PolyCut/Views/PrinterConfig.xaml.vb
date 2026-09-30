@@ -54,13 +54,7 @@
 
         If result = WPF.Ui.Controls.ContentDialogResult.Primary Then
             Dim newPrinter As New Printer With {
-                .Name = newPrinterWindow.PrinterName,
-                .BedWidth = 235,
-                .BedHeight = 235,
-                .WorkingOffsetX = 0,
-                .WorkingOffsetY = 0,
-                .WorkingWidth = 235,
-                .WorkingHeight = 235
+                .Name = newPrinterWindow.PrinterName
             }
             MainVM.AddPrinter(newPrinter)
         End If

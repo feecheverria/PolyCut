@@ -78,11 +78,8 @@ Public Class GeometryExtractor
 
         Dim b = figures.ComputeBounds()
 
-        Dim skipBoundsCheck = Keyboard.IsKeyDown(Key.LeftShift) OrElse Keyboard.IsKeyDown(Key.RightShift)
-
-        If Not skipBoundsCheck AndAlso Not IsFullyOnCanvas(b, cfg.WorkAreaWidth, cfg.WorkAreaHeight) Then
-            Return New List(Of IPathBasedElement)
-        End If
+        ' Keep every extracted path: final safety validation rejects the entire job,
+        ' instead of silently removing shapes outside the canvas.
 
         ' 6. Create IPathBasedElement
         Dim pathElement = CreatePathBasedElement(drawable, figures)

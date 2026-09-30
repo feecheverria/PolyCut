@@ -20,7 +20,8 @@ Partial Public Class ExportViewModel : Inherits ObservableObject
     End Sub
 
     <RelayCommand>
-    Private Async Sub SaveFile()
+    Private Async Function SaveFile() As Task
+        If Not MainVM.CanExportCurrentJob() Then Return
 
         Dim diskexporter As New DiskExporter(MainVM.Configuration)
         Dim fsd As New SaveFileDialog With {
@@ -37,24 +38,26 @@ Partial Public Class ExportViewModel : Inherits ObservableObject
             End If
         End If
 
-    End Sub
+    End Function
 
 
     <RelayCommand>
-    Private Async Sub NetworkUpload()
+    Private Async Function NetworkUpload() As Task
+        If Not MainVM.CanExportCurrentJob() Then Return
         Dim moonraker As New MoonrakerExporter(MainVM.Configuration)
         Dim ret = Await moonraker.Export(MainVM.GCode, FilePath)
         ParseRet(ret)
-    End Sub
+    End Function
 
 
     <RelayCommand>
-    Private Async Sub NetworkUploadPreview()
+    Private Async Function NetworkUploadPreview() As Task
+        If Not MainVM.CanExportCurrentJob() Then Return
         Dim gcodes = BuildBoundingBoxGCode(MainVM.GeneratedGCode)
         Dim moonraker As New MoonrakerExporter(MainVM.Configuration)
         Dim ret = Await moonraker.Export(gcodes, "PolyCut_Preview.gcode")
         ParseRet(ret)
-    End Sub
+    End Function
 
     Private Sub ParseRet(status As Integer)
         Dim sb = Application.GetService(Of SnackbarService)
@@ -88,10 +91,14 @@ Partial Public Class ExportViewModel : Inherits ObservableObject
         If Double.IsInfinity(minX) OrElse Double.IsInfinity(minY) Then Return String.Empty
 
         Dim sb As New Text.StringBuilder()
-        sb.AppendLine(MainVM.Printer.PreviewStartGCode.Trim)
+        sb.AppendLine("; End3r Draw bounding box, tool raised; home before mounting tool")
+        sb.AppendLine("M104 S0")
+        sb.AppendLine("M140 S0")
+        sb.AppendLine("G21")
+        sb.AppendLine("G90")
 
         Dim lines As New List(Of GCode) From {
-            Core.GCode.GZ(MainVM.Configuration.TravelZ),
+            Core.GCode.GZ(MainVM.Configuration.TravelZ, MainVM.Configuration.ZSpeed * 60),
             Core.GCode.G0(minX, minY, F:=FSpeed),
             Core.GCode.G1(maxX, minY, F:=FSpeed),
             Core.GCode.G1(maxX, maxY, F:=FSpeed),
@@ -100,7 +107,9 @@ Partial Public Class ExportViewModel : Inherits ObservableObject
         }
 
         sb.AppendLine(String.Join(Environment.NewLine, lines.Select(Function(g) g.ToString())))
-        sb.AppendLine(MainVM.Printer.PreviewEndGCode.Trim)
+        sb.AppendLine("M104 S0")
+        sb.AppendLine("M140 S0")
+        sb.AppendLine("M400")
 
         Return sb.ToString()
 

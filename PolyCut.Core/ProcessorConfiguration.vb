@@ -41,6 +41,8 @@ Partial Public Class ProcessorConfiguration : Inherits ObservableObject : Implem
     <ObservableProperty> Private _WorkAreaHeight As Double = 200
     <ObservableProperty> Private _ToolOffsetX As Double = 0
     <ObservableProperty> Private _ToolOffsetY As Double = 0
+    <ObservableProperty> Private _Paper As New PaperLayout
+    <ObservableProperty> Private _PlotterSafety As New PlotterSafetySettings
 
 
     <ObservableProperty> Private _CuttingConfig As New CuttingConfiguration
@@ -68,6 +70,8 @@ Partial Public Class ProcessorConfiguration : Inherits ObservableObject : Implem
         c.CuttingConfig = Me.CuttingConfig?.Clone()
         c.DrawingConfig = Me.DrawingConfig?.Clone()
         c.ExportConfig = Me.ExportConfig?.Clone()
+        c.Paper = Me.Paper?.Clone()
+        c.PlotterSafety = Me.PlotterSafety?.Clone()
 
         Return c
     End Function
@@ -175,7 +179,7 @@ Partial Public Class ExportConfiguration : Inherits ObservableObject
         File
     End Enum
 
-    <ObservableProperty> Private _Type As ExporterType = ExporterType.Network
+    <ObservableProperty> Private _Type As ExporterType = ExporterType.File
     <ObservableProperty> Private _FileDestination As String = Nothing
     Private _DestinationIP As String = "http://klipper.local"
     Public Property DestinationIP As String
@@ -187,7 +191,7 @@ Partial Public Class ExportConfiguration : Inherits ObservableObject
         End Set
     End Property
     <ObservableProperty> Private _DestinationPort As Integer = 7125
-    <ObservableProperty> Private _AutoPrint As Boolean = True
+    <ObservableProperty> Private _AutoPrint As Boolean = False
 
     Public Function Clone() As ExportConfiguration
         Return DirectCast(Me.MemberwiseClone(), ExportConfiguration)

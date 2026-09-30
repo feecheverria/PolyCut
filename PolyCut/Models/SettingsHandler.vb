@@ -20,7 +20,7 @@ Public Class SettingsHandler : Inherits ObservableObject
         End Get
     End Property
 
-    Public Shared Property DataFolder As IO.DirectoryInfo = New IO.DirectoryInfo(IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "IridiumIO", "PolyCut"))
+    Public Shared Property DataFolder As IO.DirectoryInfo = New IO.DirectoryInfo(IO.Path.Combine(AppContext.BaseDirectory, ".End3rDrawData"))
 
     Public Shared Property SettingsJSONFile As IO.FileInfo
 
@@ -30,7 +30,7 @@ Public Class SettingsHandler : Inherits ObservableObject
 
     Shared Async Function InitialiseSettings(truePortable As Boolean) As Task
 
-        If truePortable Then DataFolder = New IO.DirectoryInfo(IO.Path.Combine(IO.Path.GetDirectoryName(AppContext.BaseDirectory), ".PolyCutData"))
+        ' Keep this fork's profiles separate from an existing PolyCut installation.
 
 
         If Not DataFolder.Exists Then DataFolder.Create()
@@ -47,7 +47,6 @@ Public Class SettingsHandler : Inherits ObservableObject
             IO.Directory.CreateDirectory(languagesFolderPath)
         End If
 
-        GenerateEV()
 
     End Function
 

@@ -362,3 +362,7 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /PolyCut.Core/PolyCut.Core.vbproj
+
+# Local End3r Draw profiles and validation output
+.End3rDrawData/
+artifacts/

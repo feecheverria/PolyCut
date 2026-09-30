@@ -14,7 +14,7 @@
              x:Name="MainSidebar"
              d:DataContext="{d:DesignInstance Type=local:SVGPageViewModel}"
              d:DesignHeight="800"
-             d:DesignWidth="380"
+             d:DesignWidth="440"
              x:FieldModifier="public"
              mc:Ignorable="d">
     <Grid VerticalAlignment="Stretch">
@@ -50,7 +50,10 @@
             </Grid>
         </ControlTemplate>
     </TabControl.Template>
-            <TabItem IsSelected="True" Style="{StaticResource CustomTabStyle}">
+            <TabItem IsSelected="True" Header="Cuaderno" Style="{StaticResource CustomTabStyle}">
+                <local:PlotterWorkspacePanel />
+            </TabItem>
+            <TabItem Style="{StaticResource CustomTabStyle}">
                 <TabItem.Header>
                     <StackPanel Margin="5 0 5 0" Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="PuzzlePiece24" />

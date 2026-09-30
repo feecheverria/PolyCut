@@ -51,7 +51,7 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="55" MinWidth="55" MaxWidth="55" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="380" MinWidth="380" MaxWidth="800" />
+            <ColumnDefinition Width="440" MinWidth="440" MaxWidth="800" />
         </Grid.ColumnDefinitions>
         <GridSplitter Width="10"
                       Margin="0 0 -10 0" Panel.ZIndex="1"
@@ -543,6 +543,13 @@
                         Width="{Binding MainVM.Printer.BedWidth, Mode=TwoWay}"
                         Height="{Binding MainVM.Printer.BedHeight, Mode=TwoWay}"
                         Margin="0 0 0 0">
+
+                    <Path IsHitTestVisible="False" Panel.ZIndex="0" Stroke="#74CCA5" StrokeThickness="0.5" Fill="#1574CCA5">
+                        <Path.Data><RectangleGeometry Rect="{Binding MainVM.Printer.SafeCanvasRect}" /></Path.Data>
+                    </Path>
+                    <Path IsHitTestVisible="False" Panel.ZIndex="0" Stroke="#84BAEF" StrokeThickness="0.5" Fill="#DCE7F0">
+                        <Path.Data><RectangleGeometry Rect="{Binding MainVM.Configuration.Paper.CanvasRect}" /></Path.Data>
+                    </Path>
 
                     <rc:PolyCanvas x:Name="mainCanvas"
                                    Width="{Binding MainVM.Printer.BedWidth, Mode=TwoWay}"

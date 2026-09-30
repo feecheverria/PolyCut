@@ -10,7 +10,7 @@ Public Class SettingsBase : Implements ISettingsService
     Public Property SettingsFiles As New List(Of FileInfo) Implements ISettingsService.SettingsFiles
     Public Property SettingsFolder As DirectoryInfo Implements ISettingsService.SettingsFolder
 
-    Public Async Function SetValue(settingName As String, setting As Object) As Task Implements ISettingsService.SetValue
+    Public Function SetValue(settingName As String, setting As Object) As Task Implements ISettingsService.SetValue
         Dim fileN As String = settingName & ".json"
 
         Dim js As New JsonSerializerOptions With {
@@ -22,11 +22,13 @@ Public Class SettingsBase : Implements ISettingsService
         Dim oldPath = IO.Path.Combine(SettingsFolder.FullName, fileN)
 
 
-        Await IO.File.WriteAllTextAsync(oldPath, output)
+        ' Small profile files must finish writing before WPF closes the process.
+        IO.File.WriteAllText(oldPath, output)
         Dim exists = SettingsFiles.Any(Function(f) String.Equals(f.FullName, oldPath, StringComparison.OrdinalIgnoreCase))
         If Not exists Then
             SettingsFiles.Add(New FileInfo(oldPath))
         End If
+        Return Task.CompletedTask
     End Function
 
     Public Async Function InitialiseSettings(Of T As {ISaveable, New})(appName As String, Subfolder As String) As Task Implements ISettingsService.InitialiseSettings
@@ -39,7 +41,6 @@ Public Class SettingsBase : Implements ISettingsService
         If files.Count = 0 Then
             Dim p = New T()
             Await SetValue(p.Name, p)
-            SettingsFiles.Add(New FileInfo(IO.Path.Combine(SettingsFolder.FullName, p.Name & ".json")))
         Else
             SettingsFiles.AddRange(files)
         End If

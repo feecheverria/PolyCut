@@ -14,6 +14,7 @@
                  ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                  ExtendsContentIntoTitleBar="True"
                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                 Background="#191B21"
                  RenderOptions.BitmapScalingMode="HighQuality"
                  WindowBackdropType="Mica"
                  WindowStartupLocation="CenterOwner"
@@ -69,6 +70,21 @@
                             <StackPanel.Background>
                                 <SolidColorBrush Color="Transparent" />
                             </StackPanel.Background>
+
+                            <TextBlock Text="Calibración End3r Draw" FontSize="18" FontWeight="SemiBold" Margin="0 0 0 8"/>
+                            <TextBlock Text="Offset físico = punta − boquilla: lápiz a la izquierda → X negativo. Área segura en coordenadas de la punta, desde abajo a la izquierda. Mide antes de confirmar; las referencias iniciales no son una calibración." TextWrapping="Wrap" Margin="0 0 0 10" Foreground="#DCA85B"/>
+                            <CheckBox Content="Medí offsets, límites y Z para esta herramienta" IsChecked="{Binding MainVM.Printer.CalibrationConfirmed, Mode=TwoWay}" Margin="0 0 0 12"/>
+                            <TextBlock Text="Límites medidos de la boquilla (mm)" Margin="0 0 0 8"/>
+                            <UniformGrid Columns="2">
+                                <StackPanel Margin="0 0 8 8"><TextBlock Text="X mínimo"/><TextBox Text="{Binding MainVM.Printer.NozzleMinX, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                <StackPanel Margin="0 0 0 8"><TextBlock Text="X máximo"/><TextBox Text="{Binding MainVM.Printer.NozzleMaxX, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                <StackPanel Margin="0 0 8 8"><TextBlock Text="Y mínimo"/><TextBox Text="{Binding MainVM.Printer.NozzleMinY, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                <StackPanel Margin="0 0 0 8"><TextBlock Text="Y máximo"/><TextBox Text="{Binding MainVM.Printer.NozzleMaxY, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                <StackPanel Margin="0 0 8 8"><TextBlock Text="Z contacto"/><TextBox Text="{Binding MainVM.Printer.ContactZ, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                <StackPanel Margin="0 0 0 8"><TextBlock Text="Z traslado"/><TextBox Text="{Binding MainVM.Printer.LiftZ, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                                <StackPanel Margin="0 0 8 8"><TextBlock Text="Z máximo"/><TextBox Text="{Binding MainVM.Printer.MaximumZ, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+                            </UniformGrid>
+                            <Separator Margin="0 10"/>
 
                             <Label Margin="0 0 0 10" loc:L.Value="Bed Dimensions" />
 
@@ -238,6 +254,7 @@
 
                         <Separator Margin="0 10 0 5" />
                         <ui:CardExpander x:Name="CustomGCode_Section"
+                                         Visibility="Collapsed"
                                          Margin="-0 0" loc:L.Context="Custom GCode Entries"
                                          Background="Transparent" BorderBrush="Transparent" ContentPadding="0" FlowDirection="RightToLeft" IsExpanded="True"
                                          Style="{StaticResource CustomCardExpanderStyle}">

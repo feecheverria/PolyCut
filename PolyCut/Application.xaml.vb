@@ -75,8 +75,7 @@ Partial Public Class Application
 
         Await _host.StartAsync()
 
-        Dim updateTask = GetService(Of UpdateService)().CheckForUpdate(True)
-        Await Task.WhenAll(updateTask)
+        ' End3r Draw builds are updated from the fork, not upstream binary releases.
 
     End Sub
 

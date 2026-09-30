@@ -1,4 +1,6 @@
-﻿Imports System.Collections.ObjectModel
+Imports System.Text
+Imports System.Text.Json
+Imports System.Collections.ObjectModel
 Imports System.Collections.Specialized
 Imports System.IO
 Imports System.Net.WebRequestMethods
@@ -147,10 +149,13 @@ Partial Public Class MainViewModel
     <RelayCommand> Public Sub MainViewClosing()
         SettingsHandler.WriteConfiguration(Configuration)
         SettingsHandler.WriteUIConfiguration(UIConfiguration)
+        For Each profile In Printers
+            SettingsHandler.WritePrinter(profile)
+        Next
     End Sub
 
     <RelayCommand> Public Sub CopyGCodeToClipboard()
-        If Not String.IsNullOrEmpty(GCode) Then
+        If CanExportCurrentJob() Then
             Clipboard.SetText(GCode)
         End If
     End Sub
@@ -680,46 +685,48 @@ Partial Public Class MainViewModel
     ' -----------------
     <RelayCommand>
     Private Async Function GenerateGCode() As Task
+        ClearGeneratedJob()
+        Try
+            ConfigurePlotterJob()
+
+            Dim generator As IGenerator = New PolyCutGenerator(Configuration, Printer, DrawableCollection.
+                                                               Where(Function(d) Not d.IsHidden).
+                                                               ToList(), PolyCanvas.ActiveInstance)
+            Dim retcode = Await generator.GenerateGcodeAsync
+            If retcode.StatusCode = 1 Then Throw New InvalidOperationException(retcode.Message)
+            SetGeneratedJob(generator.GetGCode())
+        Catch ex As Exception
+            ClearGeneratedJob()
+            _snackbarService.GenerateError("No se puede generar G-code", ex.Message, 8)
+        End Try
+    End Function
+
+    Private Sub ConfigurePlotterJob()
         Configuration.WorkAreaHeight = Printer.BedHeight
         Configuration.WorkAreaWidth = Printer.BedWidth
-        Configuration.ToolOffsetX = Printer.ToolOffsetX
-        Configuration.ToolOffsetY = Printer.ToolOffsetY
+        Configuration.ToolOffsetX = -Printer.ToolOffsetX
+        Configuration.ToolOffsetY = -Printer.ToolOffsetY
+        Configuration.WorkZ = Printer.ContactZ
+        Configuration.TravelZ = Printer.LiftZ
+        Configuration.PlotterSafety = Printer.CreateSafetySettings()
+        If Configuration.SelectedToolMode <> Printer.AttachedToolMode Then
+            Throw New InvalidOperationException("El modo de trabajo no coincide con la herramienta del perfil. Usa un perfil independiente para el cortador.")
+        End If
+        PlotterSafety.ValidateConfiguration(Configuration)
 
         Configuration.SoftwareVersion = SettingsHandler.Version
 
-        Dim generator As IGenerator = New PolyCutGenerator(Configuration, Printer, DrawableCollection.
-                                                           Where(Function(d) Not d.IsHidden).
-                                                           ToList(), PolyCanvas.ActiveInstance)
+    End Sub
 
-        Dim retcode = Await generator.GenerateGcodeAsync
-
-        If retcode.StatusCode = 1 Then
-            _snackbarService.GenerateError("Error".LT(), retcode.Message, 5)
-            Return
-        End If
-
-        GeneratedGCode = generator.GetGCode
-        Dim compiledGCodeString = BuildStringFromGCodes(GeneratedGCode)
-
-        GCode = compiledGCodeString
+    Private Sub SetGeneratedJob(codes As List(Of GCode))
+        GeneratedGCode = codes
+        GCode = PlotterJob.Compile(codes, Configuration)
         GCodeGeometry = New GCodeGeometry(GeneratedGCode)
+        _generatedJobSignature = CurrentJobSignature()
         OnPropertyChanged(NameOf(GCode))
         OnPropertyChanged(NameOf(GCodeGeometry))
         _navigationService.Navigate(GetType(PreviewPage))
-    End Function
-
-    Private Function BuildStringFromGCodes(GeneratedGCode As List(Of GCode)) As String
-        Dim stringBuilder As New Text.StringBuilder()
-        For Each gc In GeneratedGCode
-            stringBuilder.AppendLine(gc.ToString())
-            If gc?.Comment?.Equals("Custom Start GCode") Then
-                stringBuilder.Append(Printer.StartGCode.Trim)
-            ElseIf gc?.Comment?.Equals("Custom End GCode") Then
-                stringBuilder.Append(Printer.EndGCode.Trim)
-            End If
-        Next
-        Return stringBuilder.ToString()
-    End Function
+    End Sub
 
     <RelayCommand>
     Sub ExportSVG()
@@ -952,4 +959,107 @@ Partial Public Class MainViewModel
     End Property
 
 
+    Private _generatedJobSignature As String
+
+    Public ReadOnly Property PaperPresets As String() = {"Custom 13 x 9 cm", "A5", "Traveler (custom)", "Custom"}
+
+    <RelayCommand>
+    Public Sub ApplyPaperPreset()
+        Select Case Configuration.Paper.Preset
+            Case "Custom 13 x 9 cm"
+                Configuration.Paper.Width = 90
+                Configuration.Paper.Height = 130
+            Case "A5"
+                Configuration.Paper.Width = 148
+                Configuration.Paper.Height = 210
+            Case Else
+                _snackbarService.GenerateInfo("Formato personalizado", "Introduce el ancho y alto reales de tu portada en milímetros.")
+        End Select
+    End Sub
+
+    <RelayCommand>
+    Public Sub RotatePaper()
+        Dim width = Configuration.Paper.Width
+        Configuration.Paper.Width = Configuration.Paper.Height
+        Configuration.Paper.Height = width
+    End Sub
+
+    <RelayCommand>
+    Public Sub AddCutterProfile()
+        Dim profile As New Printer With {.Name = "Ender 3 Pro + Cutter (pending calibration)",
+            .AttachedToolMode = ProcessorConfiguration.ToolMode.Cut}
+        If Printers.Any(Function(p) p.Name = profile.Name) Then
+            Printer = Printers.First(Function(p) p.Name = profile.Name)
+        Else
+            AddPrinter(profile)
+        End If
+        Configuration.SelectedToolMode = ProcessorConfiguration.ToolMode.Cut
+    End Sub
+
+    <RelayCommand>
+    Public Sub GenerateCalibration(pattern As String)
+        ClearGeneratedJob()
+        Try
+            ConfigurePlotterJob()
+            If Printer.AttachedToolMode <> ProcessorConfiguration.ToolMode.Draw Then
+                Throw New InvalidOperationException("Los patrones de calibración iniciales usan el módulo de lápiz.")
+            End If
+            Dim lines = CalibrationPatterns.Create(Configuration, pattern = "grid")
+            Dim job = GCodeGenerator.Generate(lines, Configuration, requirePaper:=False)
+            SetGeneratedJob(job.GCodes)
+        Catch ex As Exception
+            ClearGeneratedJob()
+            _snackbarService.GenerateError("Calibración pendiente", ex.Message, 8)
+        End Try
+    End Sub
+
+    Private Sub ClearGeneratedJob()
+        GCode = Nothing
+        GeneratedGCode = Nothing
+        GCodeGeometry = Nothing
+        _generatedJobSignature = Nothing
+    End Sub
+
+    ' Compare current physical settings, paper and artwork before every export/copy.
+    ' This also catches transforms, undo/redo, project loads and nested group edits.
+    Private Function CurrentJobSignature() As String
+        Dim options As New JsonSerializerOptions With {.IgnoreReadOnlyProperties = True}
+        Dim sb As New StringBuilder(JsonSerializer.Serialize(Printer, options))
+        ' Export destinations and auto-start preferences do not alter the toolpath.
+        Dim pathSettings = New With {
+            Configuration.SelectedToolMode, Configuration.WorkAreaWidth, Configuration.WorkAreaHeight,
+            Configuration.ToolOffsetX, Configuration.ToolOffsetY, Configuration.WorkZ, Configuration.TravelZ,
+            Configuration.WorkSpeed, Configuration.TravelSpeed, Configuration.ZSpeed,
+            Configuration.Passes, Configuration.PassHeightDelta, Configuration.Tolerance,
+            Configuration.AutoUnionText, Configuration.OptimisedToolPath, Configuration.ExtractOneColour,
+            Configuration.ExtractionColor, Configuration.CuttingConfig, Configuration.DrawingConfig,
+            Configuration.Paper, Configuration.PlotterSafety}
+        sb.Append(JsonSerializer.Serialize(pathSettings, options))
+        Dim doc As New SvgDocument
+        For Each drawable In DrawableCollection
+            If TypeOf drawable Is DrawableGroup Then Continue For
+            sb.Append(drawable.IsHidden)
+            Dim element = drawable.GetTransformedSVGElement()
+            If element IsNot Nothing Then doc.Children.Add(element)
+        Next
+        sb.Append(SVGImportService.SVGDocumentToString(doc))
+        Return sb.ToString()
+    End Function
+
+    Public Function CanExportCurrentJob() As Boolean
+        Try
+            If String.IsNullOrWhiteSpace(GCode) OrElse String.IsNullOrEmpty(_generatedJobSignature) Then
+                Throw New InvalidOperationException("Genera un recorrido válido en Preview antes de exportar.")
+            End If
+            If CurrentJobSignature() <> _generatedJobSignature Then
+                Throw New InvalidOperationException("Cambió el diseño, el papel o la calibración. Genera de nuevo el G-code antes de exportar.")
+            End If
+            PlotterSafety.ValidateConfiguration(Configuration)
+            Return True
+        Catch ex As Exception
+            ClearGeneratedJob()
+            _snackbarService.GenerateError("Exportación bloqueada", ex.Message, 8)
+            Return False
+        End Try
+    End Function
 End Class
