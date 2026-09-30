@@ -1,3 +1,11 @@
+# End3r Draw — PolyCut fork
+
+Primera adaptación para dibujar portadas con una Ender 3 Pro y lápiz, conservando el motor de corte para un módulo futuro. Incluye formatos A5/13 × 9 cm, papel en el lienzo, perfiles por herramienta, calibración explícita y validación de trayectorias.
+
+**Inicio local, calibración y pruebas:** [docs/ENDER_DRAW.md](docs/ENDER_DRAW.md). En Windows, abre `Iniciar End3r Draw.cmd` (SDK .NET 10 necesario).
+
+El README original de PolyCut se conserva a continuación.
+
 <p align="center"><img align="center" src="PolyCut/Resources/banner_dark.svg" height="220" /></p>
 <p align="center">
     <img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/IridiumIO/Polycut/total?style=for-the-badge&logo=github"> <a href="https://github.com/IridiumIO/PolyCut/releases"></img>

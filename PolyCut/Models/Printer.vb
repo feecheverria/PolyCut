@@ -10,7 +10,7 @@ Partial Public Class Printer : Inherits ObservableObject : Implements ISaveable
     <ObservableProperty> Private _Version As Single = 0.1
 
     <ImplementsProperty(GetType(ISaveable), NameOf(ISaveable.Name))>
-    <ObservableProperty> Private _Name As String = "Ender 3 S1"
+    <ObservableProperty> Private _Name As String = "Ender 3 Pro + Pen Holder"
 
     <NotifyPropertyChangedFor(NameOf(BedRect))>
     <ObservableProperty> Private _BedWidth As Decimal = 235
@@ -28,17 +28,17 @@ Partial Public Class Printer : Inherits ObservableObject : Implements ISaveable
         WorkingHeight = If(WorkingHeight < newValue - WorkingOffsetY, WorkingHeight, newValue - WorkingOffsetY)
     End Sub
 
-    Private _WorkingOffsetX As Decimal = 0
-    Private _WorkingOffsetY As Decimal = 0
-    Private _WorkingWidth As Decimal = 235
-    Private _WorkingHeight As Decimal = 235
+    Private _WorkingOffsetX As Decimal = 30
+    Private _WorkingOffsetY As Decimal = 30
+    Private _WorkingWidth As Decimal = 150
+    Private _WorkingHeight As Decimal = 150
 
     Public Property WorkingOffsetX As Decimal
         Get
             Return _WorkingOffsetX
         End Get
         Set(value As Decimal)
-            SetProperty(_WorkingOffsetX, If(value <= BedWidth, value, _WorkingOffsetX), NameOf(WorkingOffsetX))
+            SetProperty(_WorkingOffsetX, Math.Max(0, Math.Min(value, BedWidth)), NameOf(WorkingOffsetX))
             OnPropertyChanged(NameOf(WorkingRect))
             WorkingWidth = If(WorkingWidth <= BedWidth - WorkingOffsetX, WorkingWidth, BedWidth - WorkingOffsetX)
         End Set
@@ -49,9 +49,9 @@ Partial Public Class Printer : Inherits ObservableObject : Implements ISaveable
             Return _WorkingOffsetY
         End Get
         Set(value As Decimal)
-            SetProperty(_WorkingOffsetY, If(value <= BedHeight, value, _WorkingOffsetY), NameOf(WorkingOffsetY))
+            SetProperty(_WorkingOffsetY, Math.Max(0, Math.Min(value, BedHeight)), NameOf(WorkingOffsetY))
             OnPropertyChanged(NameOf(WorkingRect))
-            WorkingHeight = If(WorkingHeight <= BedHeight - WorkingOffsetY, WorkingHeight, BedWidth - WorkingOffsetY)
+            WorkingHeight = If(WorkingHeight <= BedHeight - WorkingOffsetY, WorkingHeight, BedHeight - WorkingOffsetY)
         End Set
     End Property
 
@@ -60,7 +60,7 @@ Partial Public Class Printer : Inherits ObservableObject : Implements ISaveable
             Return _WorkingWidth
         End Get
         Set(value As Decimal)
-            SetProperty(_WorkingWidth, If(value <= BedWidth - WorkingOffsetX, value, BedWidth - WorkingOffsetX), NameOf(WorkingWidth))
+            SetProperty(_WorkingWidth, Math.Max(0, Math.Min(value, BedWidth - WorkingOffsetX)), NameOf(WorkingWidth))
             OnPropertyChanged(NameOf(WorkingRect))
         End Set
     End Property
@@ -70,7 +70,7 @@ Partial Public Class Printer : Inherits ObservableObject : Implements ISaveable
             Return _WorkingHeight
         End Get
         Set(value As Decimal)
-            SetProperty(_WorkingHeight, If(value <= BedHeight - WorkingOffsetY, value, BedHeight - WorkingOffsetY), NameOf(WorkingHeight))
+            SetProperty(_WorkingHeight, Math.Max(0, Math.Min(value, BedHeight - WorkingOffsetY)), NameOf(WorkingHeight))
             OnPropertyChanged(NameOf(WorkingRect))
         End Set
     End Property
@@ -87,27 +87,51 @@ Partial Public Class Printer : Inherits ObservableObject : Implements ISaveable
         End Get
     End Property
 
-    <ObservableProperty> Private _StartGCode As String = $"G0 E0{Environment.NewLine}G21{Environment.NewLine}G28"
+    <ObservableProperty> Private _StartGCode As String = ""
     <ObservableProperty> Private _EndGCode As String = $""
-    <ObservableProperty> Private _PreviewStartGCode As String = $"G0 E0{Environment.NewLine}G21{Environment.NewLine}G28"
+    <ObservableProperty> Private _PreviewStartGCode As String = ""
     <ObservableProperty> Private _PreviewEndGCode As String = $""
 
     <ObservableProperty> Private _ToolOffsetX As Decimal = 0
     <ObservableProperty> Private _ToolOffsetY As Decimal = 0
 
+    ' Physical tip minus nozzle. A pen to the left has a NEGATIVE X offset.
+    <ObservableProperty> Private _CalibrationConfirmed As Boolean = False
+    <ObservableProperty> Private _AttachedToolMode As ProcessorConfiguration.ToolMode = ProcessorConfiguration.ToolMode.Draw
+    <ObservableProperty> Private _NozzleMinX As Decimal = 0
+    <ObservableProperty> Private _NozzleMinY As Decimal = 0
+    <ObservableProperty> Private _NozzleMaxX As Decimal = 220
+    <ObservableProperty> Private _NozzleMaxY As Decimal = 220
+    <ObservableProperty> Private _MaximumZ As Decimal = 250
+    <ObservableProperty> Private _ContactZ As Double = 0
+    <ObservableProperty> Private _LiftZ As Double = 5
+
+    Public ReadOnly Property SafeCanvasRect As Rect
+        Get
+            Return New Rect(WorkingOffsetX, BedHeight - WorkingOffsetY - WorkingHeight, WorkingWidth, WorkingHeight)
+        End Get
+    End Property
+
+    Public Function CreateSafetySettings() As PlotterSafetySettings
+        If NozzleMaxX <= NozzleMinX OrElse NozzleMaxY <= NozzleMinY Then
+            Throw New InvalidOperationException("Los límites máximos de la boquilla deben superar los mínimos.")
+        End If
+        Return New PlotterSafetySettings With {
+            .CalibrationConfirmed = CalibrationConfirmed, .SafeTipArea = WorkingRect,
+            .NozzleArea = New Rect(NozzleMinX, NozzleMinY, NozzleMaxX - NozzleMinX, NozzleMaxY - NozzleMinY),
+            .MaximumZ = MaximumZ, .BedWidth = BedWidth, .BedHeight = BedHeight}
+    End Function
+
+    Protected Overrides Sub OnPropertyChanged(e As System.ComponentModel.PropertyChangedEventArgs)
+        MyBase.OnPropertyChanged(e)
+        If e.PropertyName = NameOf(WorkingRect) OrElse e.PropertyName = NameOf(BedRect) Then
+            MyBase.OnPropertyChanged(New System.ComponentModel.PropertyChangedEventArgs(NameOf(SafeCanvasRect)))
+        End If
+    End Sub
+
     Public Function Clone() As Printer
-        Dim p As New Printer With {
-            .Version = Me.Version,
-            .Name = Me.Name,
-            .BedWidth = Me.BedWidth,
-            .BedHeight = Me.BedHeight,
-            .WorkingOffsetX = Me.WorkingOffsetX,
-            .WorkingOffsetY = Me.WorkingOffsetY,
-            .WorkingWidth = Me.WorkingWidth,
-            .WorkingHeight = Me.WorkingHeight,
-            .StartGCode = Me.StartGCode,
-            .EndGCode = Me.EndGCode
-        }
+        Dim p As New Printer
+        p.CopyFrom(Me)
         Return p
     End Function
 
@@ -124,6 +148,19 @@ Partial Public Class Printer : Inherits ObservableObject : Implements ISaveable
         Me.WorkingHeight = other.WorkingHeight
         Me.StartGCode = other.StartGCode
         Me.EndGCode = other.EndGCode
+        Me.PreviewStartGCode = other.PreviewStartGCode
+        Me.PreviewEndGCode = other.PreviewEndGCode
+        Me.ToolOffsetX = other.ToolOffsetX
+        Me.ToolOffsetY = other.ToolOffsetY
+        Me.AttachedToolMode = other.AttachedToolMode
+        Me.NozzleMinX = other.NozzleMinX
+        Me.NozzleMinY = other.NozzleMinY
+        Me.NozzleMaxX = other.NozzleMaxX
+        Me.NozzleMaxY = other.NozzleMaxY
+        Me.MaximumZ = other.MaximumZ
+        Me.ContactZ = other.ContactZ
+        Me.LiftZ = other.LiftZ
+        Me.CalibrationConfirmed = other.CalibrationConfirmed
     End Sub
 
 End Class

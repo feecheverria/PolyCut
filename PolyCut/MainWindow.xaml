@@ -10,7 +10,7 @@
                  xmlns:svgc="http://sharpvectors.codeplex.com/svgc/"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  x:Name="MainWindowView"
-                 Title="PolyCut"
+                 Title="End3r Draw — powered by PolyCut"
                  Width="1300"
                  Height="750"
                  MinWidth="700"
@@ -19,6 +19,7 @@
                  ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                  ExtendsContentIntoTitleBar="True"
                  Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                 Background="#191B21"
                  RenderOptions.BitmapScalingMode="HighQuality"
                  WindowBackdropType="Mica"
                  WindowChrome.IsHitTestVisibleInChrome="True"
@@ -53,7 +54,7 @@
                     <ui:ImageIcon Margin="15 2 8 0" Source="/PolyCut;component/Resources/logo.ico" />
                     <Label Width="350"
                            Margin="0 3 0 0" VerticalAlignment="Center"
-                           Content="PolyCut" Foreground="#40FFFFFF" IsHitTestVisible="True" />
+                           Content="End3r Draw" Foreground="#DDE3ED" IsHitTestVisible="True" />
 
 
                 </StackPanel>
@@ -264,6 +265,7 @@
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
                 <ui:NavigationViewItem x:Name="MonitorPage_NavigationButton"
+                                       Visibility="Collapsed"
                                        Margin="15 2"
                                        loc:L.Context="Monitor Tab" loc:L.Value="Monitor" NavigationCacheMode="Required"
                                        Tag="{Binding}"

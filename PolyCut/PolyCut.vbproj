@@ -59,8 +59,6 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="FamFamFam.Flags.Wpf" Version="1.2.1" />
     <PackageReference Include="IridiumIO.MVVM.VBSourceGenerators" Version="0.6.2" />
-    <PackageReference Include="LazyTranslate" Version="0.1.1" />
-    <PackageReference Include="LazyTranslate.CatalogueBuilder" Version="0.1.1" Condition="'$(Configuration)' == 'Debug'" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.77" />
@@ -75,6 +73,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\vendor\LazyTranslate\LazyTranslate\LazyTranslate.vbproj" />
+    <ProjectReference Include="..\vendor\LazyTranslate\LazyTranslate.CatalogueBuilder\LazyTranslate.CatalogueBuilder.vbproj" Condition="'$(Configuration)' == 'Debug'" />
     <ProjectReference Include="..\PolyCut.Core\PolyCut.Core.vbproj" />
     <ProjectReference Include="..\PolyCut.RichCanvas\PolyCut.RichCanvas.vbproj" />
     <ProjectReference Include="..\PolyCut.Shared\PolyCut.Shared.vbproj" />

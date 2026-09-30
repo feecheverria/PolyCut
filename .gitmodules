@@ -1,0 +1,3 @@
+[submodule "vendor/LazyTranslate"]
+	path = vendor/LazyTranslate
+	url = https://github.com/IridiumIO/LazyTranslate.git

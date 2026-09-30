@@ -1,4 +1,4 @@
-﻿Imports System.Windows.Shapes
+Imports System.Windows.Shapes
 
 Public Class GCodeData
     Public Property GCodes As New List(Of GCode)
@@ -8,7 +8,9 @@ End Class
 
 Public Class GCodeGenerator
 
-    Public Shared Function Generate(lines As List(Of GeoLine), cfg As ProcessorConfiguration) As GCodeData
+    Public Shared Function Generate(lines As List(Of GeoLine), cfg As ProcessorConfiguration, Optional requirePaper As Boolean = True) As GCodeData
+
+        PlotterSafety.ValidatePaths(lines, cfg, requirePaper)
 
         'Standard Coordinates set 0,0 to the Top Left. 3D Printers use Bottom Left
         Dim workLines = ApplyOffset(RedefineOrigin(lines, cfg), cfg.ToolOffsetX, cfg.ToolOffsetY)
@@ -28,7 +30,8 @@ Public Class GCodeGenerator
         End If
 
         GCD.EstimatedTime += GetTimeForLine(workLines(0), travelSpeed)
-        GCD.GCodes.Add(GCode.G0(workLines(0).StartPoint.ToPoint, zTravel, travelSpeed))
+        GCD.GCodes.Add(GCode.GZ(zTravel, zSpeed))
+        GCD.GCodes.Add(GCode.G0(workLines(0).StartPoint.ToPoint, F:=travelSpeed))
 
         For passIndex As Integer = 0 To cfg.Passes - 1
 
@@ -43,7 +46,7 @@ Public Class GCodeGenerator
 
                 'Pen Down
                 If isNewLine Then
-                    GCD.GCodes.Add(GCode.GZ(zWork))
+                    GCD.GCodes.Add(GCode.GZ(zWork, zSpeed))
                     GCD.EstimatedTime += GetTimeForZ(zTravel - zWork, zSpeed)
                 End If
 
@@ -54,11 +57,11 @@ Public Class GCodeGenerator
                 Dim l2 As GeoLine = workLines((i + 1) Mod workLines.Count)
 
                 'Continue Drawing if next line is continuous
-                If workLines(i).IsContinuousWith(l2) Then
+                If i < workLines.Count - 1 AndAlso workLines(i).IsContinuousWith(l2) Then
                     isNewLine = False
                 Else
                     'Pen Up
-                    GCD.GCodes.Add(GCode.GZ(zTravel))
+                    GCD.GCodes.Add(GCode.GZ(zTravel, zSpeed))
                     GCD.EstimatedTime += GetTimeForZ(zTravel - zWork, zSpeed)
 
                     'Travel to next line if not at the end
@@ -77,7 +80,7 @@ Public Class GCodeGenerator
 
             If passIndex <> cfg.Passes - 1 Then
                 ' Move to travel Z from safe
-                GCD.GCodes.Add(GCode.GZ(zTravel))
+                GCD.GCodes.Add(GCode.GZ(zTravel, zSpeed))
                 GCD.EstimatedTime += GetTimeForZ(zTravel, zSpeed)
 
                 ' Travel XY back to the first line start
@@ -112,33 +115,13 @@ Public Class GCodeGenerator
         Dim GCodeData = Generate(lines, cfg)
 
         Dim InitialMeta As New List(Of GCode) From {
-            GCode.CommentLine($"  Created using PolyCut v {cfg.SoftwareVersion}"),
-            GCode.CommentLine($"  "),
-            GCode.CommentLine($"  Estimated Time: {SecondsToReadable(GCodeData.EstimatedTime),20}"),
-            GCode.CommentLine($"  Total Length:   {MillimetresToReadable(GCodeData.TotalLength),20}"),
-            GCode.CommentLine($"  Generator:              PolyCut.Core"),
-            GCode.Blank(),
-            GCode.CommentLine($"######################################"),
-            GCode.CommentLine($"Custom Start GCode"),
-            GCode.Blank(),
-            GCode.Blank(),
-            GCode.CommentLine($"######################################")}
-
+            GCode.CommentLine($"Created using End3r Draw / PolyCut {cfg.SoftwareVersion}"),
+            GCode.CommentLine($"Estimated time: {SecondsToReadable(GCodeData.EstimatedTime)}"),
+            GCode.CommentLine($"Toolpath length: {MillimetresToReadable(GCodeData.TotalLength)}"),
+            GCode.Blank()}
         Dim EndMeta As New List(Of GCode) From {
             GCode.Blank(),
-            GCode.CommentLine($"######################################"),
-            GCode.CommentLine($"Custom End GCode"),
-            GCode.Blank(),
-            GCode.Blank(),
-            GCode.CommentLine($"######################################"),
-            GCode.CommentLine($" Klipper MetaData"),
-            GCode.Blank(),
-            GCode.CommentLine($" OrcaSlicer PolyCut {cfg.SoftwareVersion} on_"),
-            GCode.CommentLine($" estimated printing time = {CInt(GCodeData.EstimatedTime)}s"),
-            GCode.CommentLine($" filament used [mm] = {GCodeData.TotalLength:F1}"),
-            GCode.Blank(),
-            GCode.CommentLine($"######################################")
-            }
+            GCode.CommentLine($"estimated printing time = {CInt(GCodeData.EstimatedTime)}s")}
 
         GCodeData.GCodes.InsertRange(0, InitialMeta)
         GCodeData.GCodes.AddRange(EndMeta)

@@ -1,0 +1,42 @@
+<UserControl x:Class="PlotterWorkspacePanel"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="clr-namespace:PolyCut"
+ xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+ <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+  <StackPanel Margin="16 12">
+   <TextBlock Text="End3r Draw" FontSize="22" FontWeight="SemiBold"/>
+   <TextBlock Text="Portadas y dibujos con lápiz" Margin="0 4 0 16"/>
+   <ComboBox ItemsSource="{Binding MainVM.Printers}" DisplayMemberPath="Name" SelectedItem="{Binding MainVM.Printer, Mode=TwoWay}"/>
+   <ui:Button Content="Calibrar impresora / herramienta" Command="{Binding MainVM.ConfigurePrinterCommand}" Margin="0 8 0 0"/>
+   <TextBlock Text="Cama gris · área segura verde · papel azul. Las medidas iniciales son referencias pendientes de calibración." TextWrapping="Wrap" Margin="0 10" Foreground="#DCA85B"/>
+   <Separator Margin="0 6"/>
+   <TextBlock Text="Papel o portada" FontSize="17" FontWeight="SemiBold" Margin="0 4 0 10"/>
+   <ComboBox ItemsSource="{Binding MainVM.PaperPresets}" SelectedItem="{Binding MainVM.Configuration.Paper.Preset, Mode=TwoWay}"/>
+   <WrapPanel Margin="0 8">
+    <ui:Button Content="Aplicar formato" Command="{Binding MainVM.ApplyPaperPresetCommand}" Margin="0 0 8 0"/>
+    <ui:Button Content="Girar 90°" Command="{Binding MainVM.RotatePaperCommand}"/>
+   </WrapPanel>
+   <TextBlock Text="Medidas en mm. X/Y se miden desde la esquina superior izquierda de la cama." TextWrapping="Wrap" Margin="0 0 0 10"/>
+   <UniformGrid Columns="2">
+    <StackPanel Margin="0 0 8 8"><TextBlock Text="Ancho"/><TextBox Text="{Binding MainVM.Configuration.Paper.Width, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+    <StackPanel Margin="0 0 0 8"><TextBlock Text="Alto"/><TextBox Text="{Binding MainVM.Configuration.Paper.Height, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+    <StackPanel Margin="0 0 8 8"><TextBlock Text="X (izquierda)"/><TextBox Text="{Binding MainVM.Configuration.Paper.Left, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+    <StackPanel Margin="0 0 0 8"><TextBlock Text="Y (arriba)"/><TextBox Text="{Binding MainVM.Configuration.Paper.Top, UpdateSourceTrigger=LostFocus}"/></StackPanel>
+   </UniformGrid>
+   <TextBlock Text="Traveler: introduce las medidas de tu portada. Custom 13 × 9 cm empieza en vertical (90 × 130 mm)." TextWrapping="Wrap" Margin="0 4 0 12"/>
+   <Separator/>
+   <TextBlock Text="Pruebas de calibración" FontSize="17" FontWeight="SemiBold" Margin="0 12"/>
+   <TextBlock Text="Tras medir el montaje, genera un cuadrado de hasta 40 mm o una cuadrícula central. Revisa el recorrido en Preview y exporta el archivo." TextWrapping="Wrap" Margin="0 0 0 10"/>
+   <WrapPanel>
+    <ui:Button Content="Cuadrado" Command="{Binding MainVM.GenerateCalibrationCommand}" CommandParameter="square" Margin="0 0 8 0"/>
+    <ui:Button Content="Cuadrícula" Command="{Binding MainVM.GenerateCalibrationCommand}" CommandParameter="grid"/>
+   </WrapPanel>
+   <TextBlock Text="Haz homing antes de montar el lápiz. El archivo mantiene los calentadores apagados y no hace homing automático." TextWrapping="Wrap" Margin="0 12" Foreground="#DCA85B"/>
+   <Separator/>
+   <TextBlock Text="Módulo de cortador" FontSize="17" FontWeight="SemiBold" Margin="0 12"/>
+   <TextBlock Text="El motor de corte de PolyCut se conserva. Usa un perfil y una calibración independientes para ese montaje." TextWrapping="Wrap" Margin="0 0 0 10"/>
+   <ui:Button Content="Preparar perfil de cortador" Command="{Binding MainVM.AddCutterProfileCommand}"/>
+  </StackPanel>
+ </ScrollViewer>
+</UserControl>

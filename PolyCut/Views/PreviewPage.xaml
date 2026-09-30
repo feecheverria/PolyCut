@@ -56,6 +56,13 @@
                         Margin="0 0 0 0"
                         Background="Transparent">
 
+                    <Path IsHitTestVisible="False" Panel.ZIndex="0" Stroke="#74CCA5" StrokeThickness="0.5" Fill="#1574CCA5">
+                        <Path.Data><RectangleGeometry Rect="{Binding Printer.SafeCanvasRect}" /></Path.Data>
+                    </Path>
+                    <Path IsHitTestVisible="False" Panel.ZIndex="0" Stroke="#84BAEF" StrokeThickness="0.5" Fill="#DCE7F0">
+                        <Path.Data><RectangleGeometry Rect="{Binding Configuration.Paper.CanvasRect}" /></Path.Data>
+                    </Path>
+
 
                     <Border x:Name="CuttingMatBounds"
                             Width="{Binding Printer.BedWidth, Mode=TwoWay}"
